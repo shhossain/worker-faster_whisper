@@ -41,7 +41,7 @@ class Predictor:
         if model_name in self.models:
             return
 
-        model = self.load_model(model_name)
+        _, model = self.load_model(model_name)
         self.models[model_name] = model
 
     def predict(

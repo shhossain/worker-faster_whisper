@@ -29,20 +29,17 @@ class Predictor:
 
         return model_name, loaded_model
 
-    # def setup(self):
-    #     """Load the model into memory to make running multiple predictions efficient"""
-    #     model_names = ["tiny", "base", "small", "medium", "large-v1", "large-v2", "large-v3"]
-    #     with ThreadPoolExecutor() as executor:
-    #         for model_name, model in executor.map(self.load_model, model_names):
-    #             if model_name is not None:
-    #                 self.models[model_name] = model
-
-    def setup(self, model_name: str):
-        if model_name in self.models:
-            return
-
-        _, model = self.load_model(model_name)
-        self.models[model_name] = model
+    def setup(self):
+        """Load the model into memory to make running multiple predictions efficient"""
+        model_names = [
+            "large-v3",
+            "shhossain/whisper-large-bn-v2-ct2",
+            "deepdml/faster-whisper-large-v3-turbo-ct2",
+        ]
+        with ThreadPoolExecutor() as executor:
+            for model_name, model in executor.map(self.load_model, model_names):
+                if model_name is not None:
+                    self.models[model_name] = model
 
     def predict(
         self,

@@ -17,7 +17,7 @@ import predict
 
 
 MODEL = predict.Predictor()
-# MODEL.setup()
+MODEL.setup()
 
 
 def base64_to_tempfile(base64_file: str) -> str:
@@ -68,9 +68,6 @@ def run_whisper_job(job):
 
     if job_input.get("audio_base64", False):
         audio_input = base64_to_tempfile(job_input["audio_base64"])
-
-    with rp_debugger.LineTimer("setup_step"):
-        MODEL.setup(job_input["model"])
 
     with rp_debugger.LineTimer("prediction_step"):
         whisper_results = MODEL.predict(

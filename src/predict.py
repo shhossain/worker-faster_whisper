@@ -14,27 +14,35 @@ from faster_whisper.utils import format_timestamp
 
 
 class Predictor:
-    """ A Predictor class for the Whisper model """
+    """A Predictor class for the Whisper model"""
 
     def __init__(self):
         self.models = {}
 
     def load_model(self, model_name):
-        """ Load the model from the weights folder. """
+        """Load the model from the weights folder."""
         loaded_model = WhisperModel(
             model_name,
             device="cuda" if rp_cuda.is_available() else "cpu",
-            compute_type="float16" if rp_cuda.is_available() else "int8")
+            compute_type="float16" if rp_cuda.is_available() else "int8",
+        )
 
         return model_name, loaded_model
 
-    def setup(self):
-        """Load the model into memory to make running multiple predictions efficient"""
-        model_names = ["tiny", "base", "small", "medium", "large-v1", "large-v2", "large-v3"]
-        with ThreadPoolExecutor() as executor:
-            for model_name, model in executor.map(self.load_model, model_names):
-                if model_name is not None:
-                    self.models[model_name] = model
+    # def setup(self):
+    #     """Load the model into memory to make running multiple predictions efficient"""
+    #     model_names = ["tiny", "base", "small", "medium", "large-v1", "large-v2", "large-v3"]
+    #     with ThreadPoolExecutor() as executor:
+    #         for model_name, model in executor.map(self.load_model, model_names):
+    #             if model_name is not None:
+    #                 self.models[model_name] = model
+
+    def setup(self, model_name: str):
+        if model_name in self.models:
+            return
+
+        model = self.load_model(model_name)
+        self.models[model_name] = model
 
     def predict(
         self,
@@ -57,7 +65,7 @@ class Predictor:
         logprob_threshold=-1.0,
         no_speech_threshold=0.6,
         enable_vad=False,
-        word_timestamps=False
+        word_timestamps=False,
     ):
         """
         Run a single prediction on the model
@@ -73,27 +81,30 @@ class Predictor:
         else:
             temperature = [temperature]
 
-        segments, info = list(model.transcribe(str(audio),
-                                               language=language,
-                                               task="transcribe",
-                                               beam_size=beam_size,
-                                               best_of=best_of,
-                                               patience=patience,
-                                               length_penalty=length_penalty,
-                                               temperature=temperature,
-                                               compression_ratio_threshold=compression_ratio_threshold,
-                                               log_prob_threshold=logprob_threshold,
-                                               no_speech_threshold=no_speech_threshold,
-                                               condition_on_previous_text=condition_on_previous_text,
-                                               initial_prompt=initial_prompt,
-                                               prefix=None,
-                                               suppress_blank=True,
-                                               suppress_tokens=[-1],
-                                               without_timestamps=False,
-                                               max_initial_timestamp=1.0,
-                                               word_timestamps=word_timestamps,
-                                               vad_filter=enable_vad
-                                               ))
+        segments, info = list(
+            model.transcribe(
+                str(audio),
+                language=language,
+                task="transcribe",
+                beam_size=beam_size,
+                best_of=best_of,
+                patience=patience,
+                length_penalty=length_penalty,
+                temperature=temperature,
+                compression_ratio_threshold=compression_ratio_threshold,
+                log_prob_threshold=logprob_threshold,
+                no_speech_threshold=no_speech_threshold,
+                condition_on_previous_text=condition_on_previous_text,
+                initial_prompt=initial_prompt,
+                prefix=None,
+                suppress_blank=True,
+                suppress_tokens=[-1],
+                without_timestamps=False,
+                max_initial_timestamp=1.0,
+                word_timestamps=word_timestamps,
+                vad_filter=enable_vad,
+            )
+        )
 
         segments = list(segments)
 
@@ -101,9 +112,7 @@ class Predictor:
 
         if translate:
             translation_segments, translation_info = model.transcribe(
-                str(audio),
-                task="translate",
-                temperature=temperature
+                str(audio), task="translate", temperature=temperature
             )
 
             translation = format_segments(translation, translation_segments)
@@ -121,39 +130,43 @@ class Predictor:
             word_timestamps = []
             for segment in segments:
                 for word in segment.words:
-                    word_timestamps.append({
-                        "word": word.word,
-                        "start": word.start,
-                        "end": word.end,
-                    })
+                    word_timestamps.append(
+                        {
+                            "word": word.word,
+                            "start": word.start,
+                            "end": word.end,
+                        }
+                    )
             results["word_timestamps"] = word_timestamps
-
 
         return results
 
 
 def serialize_segments(transcript):
-    '''
+    """
     Serialize the segments to be returned in the API response.
-    '''
-    return [{
-        "id": segment.id,
-        "seek": segment.seek,
-        "start": segment.start,
-        "end": segment.end,
-        "text": segment.text,
-        "tokens": segment.tokens,
-        "temperature": segment.temperature,
-        "avg_logprob": segment.avg_logprob,
-        "compression_ratio": segment.compression_ratio,
-        "no_speech_prob": segment.no_speech_prob
-    } for segment in transcript]
+    """
+    return [
+        {
+            "id": segment.id,
+            "seek": segment.seek,
+            "start": segment.start,
+            "end": segment.end,
+            "text": segment.text,
+            "tokens": segment.tokens,
+            "temperature": segment.temperature,
+            "avg_logprob": segment.avg_logprob,
+            "compression_ratio": segment.compression_ratio,
+            "no_speech_prob": segment.no_speech_prob,
+        }
+        for segment in transcript
+    ]
 
 
 def format_segments(format, segments):
-    '''
+    """
     Format the segments to the desired format
-    '''
+    """
 
     if format == "plain_text":
         return " ".join([segment.text.lstrip() for segment in segments])
@@ -161,18 +174,20 @@ def format_segments(format, segments):
         return "\n".join([segment.text.lstrip() for segment in segments])
     elif format == "srt":
         return write_srt(segments)
-    
+
     return write_vtt(segments)
 
 
 def write_vtt(transcript):
-    '''
+    """
     Write the transcript in VTT format.
-    '''
+    """
     result = ""
 
     for segment in transcript:
-        result += f"{format_timestamp(segment.start)} --> {format_timestamp(segment.end)}\n"
+        result += (
+            f"{format_timestamp(segment.start)} --> {format_timestamp(segment.end)}\n"
+        )
         result += f"{segment.text.strip().replace('-->', '->')}\n"
         result += "\n"
 
@@ -180,9 +195,9 @@ def write_vtt(transcript):
 
 
 def write_srt(transcript):
-    '''
+    """
     Write the transcript in SRT format.
-    '''
+    """
     result = ""
 
     for i, segment in enumerate(transcript, start=1):

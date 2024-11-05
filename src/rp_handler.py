@@ -41,19 +41,19 @@ def base64_to_tempfile(base64_file: str) -> str:
 def download_file(url: str) -> str:
     """
     Download file from URL to a temporary file.
-    
+
     Parameters:
     url (str): URL to download from
-    
+
     Returns:
     str: Path to downloaded file
     """
     try:
         response = requests.get(url, stream=True)
         response.raise_for_status()
-        
+
         # Create temp file with appropriate extension
-        suffix = os.path.splitext(url)[-1] or '.tmp'
+        suffix = os.path.splitext(url)[-1] or ".tmp"
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
@@ -89,7 +89,7 @@ def run_whisper_job(job):
 
     if job_input.get("audio", False) and job_input.get("audio_base64", False):
         return {"error": "Must provide either audio or audio_base64, not both"}
-    
+
     print(f"Running job with input: {job_input}")
 
     try:
@@ -99,6 +99,8 @@ def run_whisper_job(job):
 
         if job_input.get("audio_base64", False):
             audio_input = base64_to_tempfile(job_input["audio_base64"])
+
+        print("Got audio input")
 
         with rp_debugger.LineTimer("prediction_step"):
             whisper_results = MODEL.predict(
@@ -125,8 +127,11 @@ def run_whisper_job(job):
                 enable_vad=job_input["enable_vad"],
                 word_timestamps=job_input["word_timestamps"],
             )
+        
+        print(f"Got whisper results: {whisper_results}")
 
     except Exception as e:
+        print(f"Prediction failed: {str(e)}")
         return {"error": f"Prediction failed: {str(e)}"}
 
     finally:

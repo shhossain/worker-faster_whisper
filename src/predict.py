@@ -5,6 +5,7 @@ repository, with some modifications to make it work with the RP platform.
 """
 
 from concurrent.futures import ThreadPoolExecutor
+from typing import Dict
 import numpy as np
 
 from runpod.serverless.utils import rp_cuda
@@ -17,7 +18,7 @@ class Predictor:
     """A Predictor class for the Whisper model"""
 
     def __init__(self):
-        self.models = {}
+        self.models: Dict[str, WhisperModel] = {}
 
     def load_model(self, model_name):
         """Load the model from the weights folder."""
@@ -71,7 +72,9 @@ class Predictor:
         if not model:
             raise ValueError(f"Model '{model_name}' not found.")
 
+        print(f"Available models: {self.models.keys()}")
         print(f"Running prediction with model '{model_name}'")
+        print(f"Available methods: {dir(model)}")
 
         if temperature_increment_on_fallback is not None:
             temperature = tuple(

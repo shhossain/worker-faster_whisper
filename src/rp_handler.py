@@ -75,6 +75,7 @@ def run_whisper_job(job):
     dict: The result of the prediction
     """
     job_input = job["input"]
+    print(f"Received job: {job_input}")
 
     with rp_debugger.LineTimer("validation_step"):
         input_validation = validate(job_input, INPUT_VALIDATIONS)
@@ -88,6 +89,8 @@ def run_whisper_job(job):
 
     if job_input.get("audio", False) and job_input.get("audio_base64", False):
         return {"error": "Must provide either audio or audio_base64, not both"}
+    
+    print(f"Running job with input: {job_input}")
 
     try:
         if job_input.get("audio", False):

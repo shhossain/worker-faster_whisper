@@ -71,12 +71,20 @@ class Predictor:
         if not model:
             raise ValueError(f"Model '{model_name}' not found.")
 
+        print(f"Running prediction with model '{model_name}'")
+
         if temperature_increment_on_fallback is not None:
             temperature = tuple(
                 np.arange(temperature, 1.0 + 1e-6, temperature_increment_on_fallback)
             )
         else:
             temperature = [temperature]
+
+        print(f"Temperature: {temperature}")
+        print(
+            f"Settings: {best_of=}, {beam_size=}, {patience=}, {length_penalty=}, {compression_ratio_threshold=}, {logprob_threshold=}, {no_speech_threshold=}, {enable_vad=}"
+        )
+        print(f"Arguments: {transcription=}, {translate=}, {language=}")
 
         segments, info = list(
             model.transcribe(
@@ -104,6 +112,7 @@ class Predictor:
         )
 
         segments = list(segments)
+        print(f"Segments: {len(segments)}")
 
         transcription = format_segments(transcription, segments)
 

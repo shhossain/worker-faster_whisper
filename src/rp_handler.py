@@ -16,6 +16,7 @@ from runpod.serverless.utils import rp_cleanup, rp_debugger
 from runpod.serverless.utils.rp_validator import validate
 import runpod
 import predict
+import traceback
 
 
 MODEL = predict.Predictor()
@@ -131,7 +132,7 @@ def run_whisper_job(job):
         print(f"Got whisper results: {whisper_results}")
 
     except Exception as e:
-        print(f"Prediction failed: {str(e)}")
+        print(f"Prediction failed: {str(e)}\nTraceback:\n{''.join(traceback.format_tb(e.__traceback__))}")
         return {"error": f"Prediction failed: {str(e)}"}
 
     finally:
